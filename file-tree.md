@@ -1,6 +1,6 @@
 # File Tree: archive
 
-**Generated:** 8/25/2026, 3:43:54 PM
+**Generated:** 8/25/2026, 4:26:41 PM
 **Root Path:** `c:\archive`
 
 ```
@@ -24,6 +24,8 @@
 │   │   │       │   ├── felt
 │   │   │       │   │   └── route.ts
 │   │   │       │   └── route.ts
+│   │   │       ├── random
+│   │   │       │   └── route.ts
 │   │   │       └── route.ts
 │   │   ├── explore
 │   │   │   ├── [collection]
@@ -34,6 +36,11 @@
 │   │   ├── story
 │   │   │   └── [id]
 │   │   │       └── page.tsx
+│   │   ├── utils
+│   │   │   └── supabase
+│   │   │       ├── client.ts
+│   │   │       ├── middleware.ts
+│   │   │       └── server.ts
 │   │   ├── write
 │   │   │   └── page.tsx
 │   │   ├── favicon.ico
@@ -66,7 +73,9 @@
 │       ├── format.ts
 │       ├── identityStore.ts
 │       ├── localSetStore.ts
+│       ├── rateLimit.ts
 │       ├── store.ts
+│       ├── supabaseClient.ts
 │       ├── types.ts
 │       └── userPrefsHooks.ts
 ├── .gitignore
