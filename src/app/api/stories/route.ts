@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listStories, createStory, searchStories } from '@/lib/store';
+import { listStories, listStoriesByIds, createStory, searchStories } from '@/lib/store';
 import { COLLECTIONS } from '@/lib/data';
 import { CollectionId, NewStoryInput } from '@/lib/types';
+import { isRateLimited, clientKey } from '@/lib/rateLimit';
 
-// GET Route Handlers are cached by default unless they use fetch() or opt
-// out explicitly. This one reads the mutable in-memory store directly, so
-// it must be forced dynamic or newly-published/felt-updated data would be
-// served stale.
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
@@ -15,11 +12,39 @@ export async function GET(req: NextRequest) {
     const results = await searchStories(q);
     return NextResponse.json({ stories: results });
   }
-  const stories = await listStories();
+
+  // Specific IDs (Keep uses this instead of downloading the full archive
+  // and filtering client-side).
+  const idsParam = req.nextUrl.searchParams.get('ids');
+  if (idsParam) {
+    const ids = idsParam
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const stories = await listStoriesByIds(ids);
+    return NextResponse.json({ stories });
+  }
+
+  // Otherwise, paginated most-recent list.
+  const limitParam = Number(req.nextUrl.searchParams.get('limit'));
+  const offsetParam = Number(req.nextUrl.searchParams.get('offset'));
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : undefined;
+  const offset = Number.isFinite(offsetParam) && offsetParam >= 0 ? offsetParam : undefined;
+
+  const stories = await listStories(limit, offset);
   return NextResponse.json({ stories });
 }
 
 export async function POST(req: NextRequest) {
+  // A handful of submissions per IP per window is plenty for a genuine
+  // person writing something down; it just slows scripted spam.
+  if (isRateLimited(clientKey(req), 10 * 60_000, 5)) {
+    return NextResponse.json(
+      { error: 'Too many stories submitted recently. Please wait a little before writing another.' },
+      { status: 429 }
+    );
+  }
+
   let payload: Partial<NewStoryInput>;
   try {
     payload = await req.json();
@@ -32,7 +57,7 @@ export async function POST(req: NextRequest) {
   const collection = payload.collection;
   const author = typeof payload.author === 'string' ? payload.author.trim() : undefined;
 
-  // --- server-side validation (the brief calls this out explicitly) ---
+  // --- server-side validation (unchanged) ---
   if (title.length < 2 || title.length > 200) {
     return NextResponse.json(
       { error: 'Title must be between 2 and 200 characters.' },

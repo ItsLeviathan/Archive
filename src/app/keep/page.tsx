@@ -8,18 +8,25 @@ import { StoryCard } from '@/components/StoryCard';
 
 export default function KeepPage() {
   const kept = useKeptIds();
-  const [allStories, setAllStories] = useState<Story[]>([]);
+  const [keptStories, setKeptStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/stories')
+    const ids = [...kept];
+    if (!ids.length) {
+      setKeptStories([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    // Fetch exactly the kept IDs instead of the whole archive + client
+    // filter — this stays fast no matter how large the archive gets.
+    fetch(`/api/stories?ids=${ids.map(encodeURIComponent).join(',')}`)
       .then((r) => r.json())
-      .then((data) => setAllStories(data.stories || []))
-      .catch(() => setAllStories([]))
+      .then((data) => setKeptStories(data.stories || []))
+      .catch(() => setKeptStories([]))
       .finally(() => setLoading(false));
-  }, []);
-
-  const keptStories = allStories.filter((s) => kept.has(s.id));
+  }, [kept]);
 
   return (
     <div className="container">

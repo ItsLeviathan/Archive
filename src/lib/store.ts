@@ -1,72 +1,153 @@
-import { NewStoryInput, Story } from './types';
-import { SEED_STORIES } from './data';
+import { NewStoryInput, Story, CollectionId, CardLayout } from './types';
+import { supabase } from './supabaseClient';
 
 /**
- * In-memory data store.
+ * Persistent data store, backed by Postgres via Supabase.
  *
- * This is intentionally the ONLY place that "owns" story data on the server.
- * It exists so the rest of the app (API routes, pages) never touches raw
- * arrays directly — which makes it a clean seam to swap for a real database.
+ * This replaces the earlier in-memory `globalThis` store. Function
+ * signatures are unchanged on purpose — every API route and page that
+ * calls into this file keeps working without modification.
  *
- * TO GO TO PRODUCTION:
- *   Replace the body of each function below with calls to your database
- *   client (e.g. Prisma + Postgres, or the Supabase JS client). The function
- *   signatures are deliberately async already so callers won't need to change.
- *
- * WHY globalThis INSTEAD OF A PLAIN MODULE-LEVEL VARIABLE:
- *   Next.js compiles each route (every API route, every page) as an
- *   independently bundled module. A plain `let stories = [...]` at module
- *   scope gets its own separate copy inside *each* route's bundle — so an
- *   API route and a page route would silently see different arrays, even
- *   though they're running in the same `next start` process and both
- *   import "the same" store.ts. (This is verified, not theoretical: it's
- *   what caused freshly-published stories to 404 on their own page during
- *   testing, while the list API correctly showed them.) Attaching the data
- *   to `globalThis` sidesteps this, because globalThis is a property of the
- *   shared JS realm, not of any one module's scope.
- *
- * CAVEAT: this is still only process-local memory. It resets on server
- * restart, and on most serverless hosts (Vercel etc.) each function
- * instance — and often each concurrent invocation — gets its own process,
- * so writes from one request may simply not be visible to another. Fine for
- * a prototype and for local development; not durable or consistent enough
- * for production. Swap in a real database before shipping this for real.
+ * Setup:
+ *   1. Run supabase/schema.sql once in the Supabase SQL editor (creates
+ *      the `stories` table, the `increment_felt` and `random_story`
+ *      functions, and enables RLS with no public policies).
+ *   2. Run supabase/seed.sql once to load the original 19 stories.
+ *   3. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (see
+ *      .env.local.example).
  */
 
-declare global {
-  var __unsentArchiveStories: Story[] | undefined;
+interface StoryRow {
+  id: string;
+  collection: string;
+  emotion: string;
+  layout: string;
+  title: string;
+  excerpt: string;
+  author: string;
+  date: string;
+  time: string;
+  reading_time: string;
+  felt: number;
+  body: string[];
 }
 
-function db(): Story[] {
-  if (!globalThis.__unsentArchiveStories) {
-    globalThis.__unsentArchiveStories = [...SEED_STORIES];
-  }
-  return globalThis.__unsentArchiveStories;
+const SELECT_COLUMNS =
+  'id, collection, emotion, layout, title, excerpt, author, date, time, reading_time, felt, body';
+
+function rowToStory(row: StoryRow): Story {
+  return {
+    id: row.id,
+    collection: row.collection as CollectionId,
+    emotion: row.emotion,
+    layout: row.layout as CardLayout,
+    title: row.title,
+    excerpt: row.excerpt,
+    author: row.author,
+    date: row.date,
+    time: row.time,
+    readingTime: row.reading_time,
+    felt: row.felt,
+    body: row.body,
+  };
 }
 
-export async function listStories(): Promise<Story[]> {
-  return db();
+const DEFAULT_PAGE_SIZE = 60;
+const MAX_PAGE_SIZE = 100;
+
+/** Most recent stories first, paginated — the archive is expected to grow
+ * past what any single client should ever fetch in one request. */
+export async function listStories(
+  limit: number = DEFAULT_PAGE_SIZE,
+  offset: number = 0
+): Promise<Story[]> {
+  const safeLimit = Math.max(1, Math.min(limit, MAX_PAGE_SIZE));
+  const safeOffset = Math.max(0, offset);
+
+  const { data, error } = await supabase
+    .from('stories')
+    .select(SELECT_COLUMNS)
+    .order('created_at', { ascending: false })
+    .range(safeOffset, safeOffset + safeLimit - 1);
+
+  if (error) throw error;
+  return (data || []).map(rowToStory);
+}
+
+/** Fetch a specific, known set of story IDs in one round trip — used by
+ * Keep, which already knows exactly which IDs it needs and shouldn't have
+ * to download the whole archive to filter client-side. */
+export async function listStoriesByIds(ids: string[]): Promise<Story[]> {
+  const cleanIds = ids.filter(Boolean).slice(0, 200);
+  if (!cleanIds.length) return [];
+
+  const { data, error } = await supabase
+    .from('stories')
+    .select(SELECT_COLUMNS)
+    .in('id', cleanIds);
+
+  if (error) throw error;
+  return (data || []).map(rowToStory);
 }
 
 export async function getStory(id: string): Promise<Story | undefined> {
-  return db().find((s) => s.id === id);
+  const { data, error } = await supabase
+    .from('stories')
+    .select(SELECT_COLUMNS)
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? rowToStory(data as StoryRow) : undefined;
 }
 
-export async function listByCollection(collectionId: string): Promise<Story[]> {
-  return db().filter((s) => s.collection === collectionId);
+export async function listByCollection(
+  collectionId: string,
+  limit: number = DEFAULT_PAGE_SIZE
+): Promise<Story[]> {
+  const safeLimit = Math.max(1, Math.min(limit, MAX_PAGE_SIZE));
+
+  const { data, error } = await supabase
+    .from('stories')
+    .select(SELECT_COLUMNS)
+    .eq('collection', collectionId)
+    .order('created_at', { ascending: false })
+    .limit(safeLimit);
+
+  if (error) throw error;
+  return (data || []).map(rowToStory);
 }
 
-export async function searchStories(query: string): Promise<Story[]> {
-  const q = query.trim().toLowerCase();
+/** Substring search across title/excerpt/author/emotion/collection/body,
+ * same behavior as the old in-memory version — just matched against a
+ * precomputed `search_blob` column instead of re-joining fields per call. */
+export async function searchStories(query: string, limit = 12): Promise<Story[]> {
+  const q = query.trim();
   if (!q) return [];
-  return db()
-    .filter((s) => {
-      const hay = [s.title, s.excerpt, s.author, s.emotion, s.collection, ...s.body]
-        .join(' ')
-        .toLowerCase();
-      return hay.includes(q);
-    })
-    .slice(0, 12);
+
+  const { data, error } = await supabase
+    .from('stories')
+    .select(SELECT_COLUMNS)
+    .ilike('search_blob', `%${q}%`)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return (data || []).map(rowToStory);
+}
+
+/** One random story via a Postgres function (ORDER BY random() LIMIT 1 on
+ * the server), instead of shipping the whole table to the client to pick
+ * from — this is the fix for "Open a stranger's heart" getting slower as
+ * the archive grows. */
+export async function getRandomStory(excludeId?: string): Promise<Story | undefined> {
+  const { data, error } = await supabase.rpc('random_story', {
+    exclude_id: excludeId ?? null,
+  });
+
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return row ? rowToStory(row as StoryRow) : undefined;
 }
 
 function estimateReadingTime(text: string): string {
@@ -98,28 +179,48 @@ export async function createStory(input: NewStoryInput): Promise<Story> {
   const excerpt =
     firstWords.slice(0, 24).join(' ') + (firstWords.length > 24 ? '\u2026' : '');
 
-  const story: Story = {
-    id: 'story-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-    collection: input.collection,
-    emotion: input.collection.toUpperCase(),
-    layout: LAYOUTS[Math.floor(Math.random() * LAYOUTS.length)],
-    title: input.title.trim(),
-    excerpt,
-    author: input.author?.trim() || 'Anonymous',
-    date,
-    time,
-    readingTime: estimateReadingTime(input.body),
-    felt: 0,
-    body: finalBody,
-  };
+  const author = input.author?.trim() || 'Anonymous';
+  const emotion = input.collection.toUpperCase();
+  const layout = LAYOUTS[Math.floor(Math.random() * LAYOUTS.length)];
+  const id = 'story-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+  const searchBlob = [input.title, excerpt, author, emotion, input.collection, ...finalBody]
+    .join(' ')
+    .toLowerCase();
 
-  globalThis.__unsentArchiveStories = [story, ...db()];
-  return story;
+  const { data, error } = await supabase
+    .from('stories')
+    .insert({
+      id,
+      collection: input.collection,
+      emotion,
+      layout,
+      title: input.title.trim(),
+      excerpt,
+      author,
+      date,
+      time,
+      reading_time: estimateReadingTime(input.body),
+      felt: 0,
+      body: finalBody,
+      search_blob: searchBlob,
+    })
+    .select(SELECT_COLUMNS)
+    .single();
+
+  if (error) throw error;
+  return rowToStory(data as StoryRow);
 }
 
+/** Atomic increment/decrement via a Postgres function, so two people
+ * tapping "I felt this" on the same story at the same moment can't clobber
+ * each other's count (a real read-then-write in JS could). */
 export async function toggleFelt(id: string, felt: boolean): Promise<Story | undefined> {
-  const story = db().find((s) => s.id === id);
-  if (!story) return undefined;
-  story.felt = Math.max(0, story.felt + (felt ? 1 : -1));
-  return story;
+  const { data, error } = await supabase.rpc('increment_felt', {
+    story_id: id,
+    delta: felt ? 1 : -1,
+  });
+
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return row ? rowToStory(row as StoryRow) : undefined;
 }

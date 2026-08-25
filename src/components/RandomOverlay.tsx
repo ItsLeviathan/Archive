@@ -20,12 +20,18 @@ export function RandomOverlay() {
 
       let pick: Story | undefined;
       try {
-        const res = await fetch('/api/stories');
-        const data = await res.json();
-        const pool: Story[] = excludeId
-          ? data.stories.filter((s: Story) => s.id !== excludeId)
-          : data.stories;
-        if (pool.length) pick = pool[Math.floor(Math.random() * pool.length)];
+        // The server picks the random story now (a Postgres function),
+        // instead of the client downloading the whole archive to choose
+        // from — that stopped scaling once there was more than a page of
+        // stories.
+        const url = excludeId
+          ? `/api/stories/random?exclude=${encodeURIComponent(excludeId)}`
+          : '/api/stories/random';
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          pick = data.story;
+        }
       } catch {
         // Network hiccup — just close the overlay without navigating.
       }

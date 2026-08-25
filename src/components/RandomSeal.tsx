@@ -1,6 +1,6 @@
 'use client';
 
-import { IconHeart } from './icons';
+import { IconLogo } from './icons';
 import { requestOpenRandom } from '@/lib/events';
 
 export function RandomSeal() {
@@ -12,7 +12,7 @@ export function RandomSeal() {
         onClick={() => requestOpenRandom()}
         aria-label="Open a stranger's heart — read a random story"
       >
-        <IconHeart />
+        <IconLogo />
       </button>
       <p className="seal-label">Open a stranger&rsquo;s heart</p>
       <p className="seal-sub">You never know what you&rsquo;ll find</p>

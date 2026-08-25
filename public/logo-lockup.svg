@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 64">
+  <path d="M41.3 12.06A22 22 0 1 1 22.7 12.06" stroke="#ECE7DF" stroke-width="2.3" stroke-linecap="round" fill="none"/>
+  <circle cx="33.6" cy="6.4" r="2.1" fill="#9C8268"/>
+  <circle cx="38.9" cy="3.3" r="1" fill="#9C8268" opacity="0.55"/>
+  <text x="72" y="40" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="30" fill="#ECE7DF" letter-spacing="0.3">the unsent archive</text>
+</svg>

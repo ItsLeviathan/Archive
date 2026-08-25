@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- An unsealed ring: a wax seal that was never pressed closed. -->
+  <path d="M41.3 12.06A22 22 0 1 1 22.7 12.06" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
+  <!-- The droplet that fell away instead. -->
+  <circle cx="33.6" cy="6.4" r="2.1" fill="currentColor"/>
+  <circle cx="38.9" cy="3.3" r="1" fill="currentColor" opacity="0.55"/>
+</svg>

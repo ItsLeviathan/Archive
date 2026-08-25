@@ -1,11 +1,9 @@
 import Link from 'next/link';
 import { listStories } from '@/lib/store';
 import { COLLECTIONS } from '@/lib/data';
-import { metaDots } from '@/lib/format';
 import { StoryCard } from '@/components/StoryCard';
 import { CollectionTile } from '@/components/CollectionTile';
 import { RandomSeal } from '@/components/RandomSeal';
-import { IconArrowRight } from '@/components/icons';
 import { HeroConstellation } from '@/components/HeroConstellation';
 
 export const dynamic = 'force-dynamic';
@@ -20,14 +18,33 @@ export default async function HomePage() {
     <>
       <section className="hero">
         <HeroConstellation nodes={constellationNodes} />
-        <Link href={`/story/${hero.id}`} className="hero-card" aria-label={`Read: ${hero.title}`}>
-          <span className="eyebrow hero-eyebrow">The Unsent Archive</span>
-          <h1 className="hero-title">{hero.title}</h1>
-          <p className="hero-excerpt">{hero.excerpt}</p>
-          <div className="hero-meta meta-line">{metaDots([hero.emotion, `${hero.date} \u00b7 ${hero.time}`])}</div>
-          <span className="hero-read-link">Read story <IconArrowRight /></span>
-          <div className="hero-scroll-cue" aria-hidden="true"><span className="line" /><span>Scroll</span></div>
-        </Link>
+        <div className="hero-content">
+          <span className="eyebrow hero-kicker">The Unsent Archive</span>
+          <h1 className="hero-statement">
+            Some words are never spoken.
+            <br />
+            They still deserve somewhere to live.
+          </h1>
+          <Link href="/write" className="hero-cta">
+            Write what you never said.
+          </Link>
+          <p className="hero-sub">
+            Left anonymously, kept gently &mdash; a quiet room for the things
+            you couldn&rsquo;t say out loud.
+          </p>
+
+          {hero && (
+            <Link href={`/story/${hero.id}`} className="hero-featured">
+              <span className="hero-featured-label">Tonight, someone wrote</span>
+              <span className="hero-featured-title">&ldquo;{hero.title}&rdquo;</span>
+            </Link>
+          )}
+
+          <div className="hero-scroll-cue" aria-hidden="true">
+            <span className="line" />
+            <span>Scroll</span>
+          </div>
+        </div>
       </section>
 
       <section className="section">
@@ -40,8 +57,8 @@ export default async function HomePage() {
             <Link href="/explore" className="section-link">All collections</Link>
           </div>
           <div className="collections-grid">
-            {COLLECTIONS.map((c, i) => (
-              <CollectionTile key={c.id} collection={c} index={i} />
+            {COLLECTIONS.map((c) => (
+              <CollectionTile key={c.id} collection={c} />
             ))}
           </div>
         </div>

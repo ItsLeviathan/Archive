@@ -1,12 +1,18 @@
 # File Tree: archive
 
-**Generated:** 8/25/2026, 10:19:28 AM
-**Root Path:** `f:\archive`
+**Generated:** 8/25/2026, 3:43:54 PM
+**Root Path:** `c:\archive`
 
 ```
 ├── public
+│   ├── logo
+│   │   ├── icon.svg
+│   │   ├── lockup-dark.svg
+│   │   └── mark.svg
 │   ├── file.svg
 │   ├── globe.svg
+│   ├── logo-lockup.svg
+│   ├── logo-mark.svg
 │   ├── next.svg
 │   ├── vercel.svg
 │   └── window.svg
@@ -32,6 +38,7 @@
 │   │   │   └── page.tsx
 │   │   ├── favicon.ico
 │   │   ├── globals.css
+│   │   ├── icon.svg
 │   │   ├── layout.tsx
 │   │   └── page.tsx
 │   ├── components
@@ -39,6 +46,8 @@
 │   │   ├── CollectionTile.tsx
 │   │   ├── FeltButton.tsx
 │   │   ├── Footer.tsx
+│   │   ├── HeroConstellation.tsx
+│   │   ├── IdentityGate.tsx
 │   │   ├── KeepButton.tsx
 │   │   ├── Nav.tsx
 │   │   ├── RandomOverlay.tsx
@@ -55,6 +64,7 @@
 │       ├── data.ts
 │       ├── events.ts
 │       ├── format.ts
+│       ├── identityStore.ts
 │       ├── localSetStore.ts
 │       ├── store.ts
 │       ├── types.ts
@@ -64,6 +74,7 @@
 ├── CLAUDE.md
 ├── README.md
 ├── eslint.config.mjs
+├── file-tree.md
 ├── next.config.ts
 ├── package-lock.json
 ├── package.json

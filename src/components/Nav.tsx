@@ -5,7 +5,7 @@ import { useUsername } from '@/lib/userPrefsHooks';
 import { requestIdentity } from '@/lib/events';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { IconSearch } from './icons';
+import { IconSearch, IconLogo } from './icons';
 import { requestOpenSearch, requestOpenRandom } from '@/lib/events';
 
 export function Nav() {
@@ -25,11 +25,12 @@ export function Nav() {
   return (
     <nav className={`site-nav ${scrolled ? 'is-scrolled' : ''} ${isStory ? 'is-story' : ''}`} aria-label="Primary">
       <Link href="/" className="logo">
-        <span className="mark">&#10036;</span> The Unsent Archive
+        <IconLogo className="logo-mark" aria-hidden="true" />
+        <span className="logo-word">the unsent archive</span>
       </Link>
       <div className="nav-links">
         <Link href="/explore" className="nav-text-item" data-current={pathname === '/explore' || pathname?.startsWith('/explore/')}>Explore</Link>
-        
+
         {username && username !== 'Anonymous' ? (
           <button type="button" className="nav-link nav-text-item" onClick={() => requestIdentity()}>
             {username}
