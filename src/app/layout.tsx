@@ -18,7 +18,6 @@ import '@fontsource/space-grotesk/400.css';
 import '@fontsource/space-grotesk/500.css';
 import '@fontsource/space-grotesk/600.css';
 
-
 import { Atmosphere } from '@/components/Atmosphere';
 import { Nav } from '@/components/Nav';
 import { Footer } from '@/components/Footer';
@@ -26,6 +25,7 @@ import { SearchOverlay } from '@/components/SearchOverlay';
 import { RandomOverlay } from '@/components/RandomOverlay';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { IdentityGate } from '@/components/IdentityGate';
+import { PageTransition } from '@/components/PageTransition';
 
 export const metadata: Metadata = {
   title: 'The Unsent Archive — a diary that belongs to everyone',
@@ -41,7 +41,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <a className="skip-link" href="#main">Skip to content</a>
           <Atmosphere />
           <Nav />
-          <main id="main" tabIndex={-1}>{children}</main>
+          <main id="main" tabIndex={-1}>{children}
+            <PageTransition>{children}</PageTransition>
+          </main>
           <Footer />
           <SearchOverlay />
           <RandomOverlay />

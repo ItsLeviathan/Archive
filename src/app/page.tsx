@@ -12,7 +12,7 @@ export default async function HomePage() {
   const stories = await listStories();
   const hero = stories[0];
   const featured = stories.slice(1, 9);
-  const constellationNodes = stories.slice(1, 40).map((s) => ({ id: s.id, title: s.title }));
+  const constellationNodes = stories.slice(1, 18).map((s) => ({ id: s.id, title: s.title }));
 
   return (
     <>
