@@ -26,7 +26,7 @@ export function Nav() {
     <nav className={`site-nav ${scrolled ? 'is-scrolled' : ''} ${isStory ? 'is-story' : ''}`} aria-label="Primary">
       <Link href="/" className="logo">
         <IconLogo className="logo-mark" aria-hidden="true" />
-        <span className="logo-word">the unsent archive</span>
+        <span className="logo-word">unsent archive</span>
       </Link>
       <div className="nav-links">
         <Link href="/explore" className="nav-text-item" data-current={pathname === '/explore' || pathname?.startsWith('/explore/')}>Explore</Link>
