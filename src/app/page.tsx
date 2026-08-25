@@ -6,18 +6,20 @@ import { StoryCard } from '@/components/StoryCard';
 import { CollectionTile } from '@/components/CollectionTile';
 import { RandomSeal } from '@/components/RandomSeal';
 import { IconArrowRight } from '@/components/icons';
+import { HeroConstellation } from '@/components/HeroConstellation';
 
-// Reads the live in-memory store — must render fresh, not be cached at build time.
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const stories = await listStories();
   const hero = stories[0];
   const featured = stories.slice(1, 9);
+  const constellationNodes = stories.slice(1, 40).map((s) => ({ id: s.id, title: s.title }));
 
   return (
     <>
       <section className="hero">
+        <HeroConstellation nodes={constellationNodes} />
         <Link href={`/story/${hero.id}`} className="hero-card" aria-label={`Read: ${hero.title}`}>
           <span className="eyebrow hero-eyebrow">The Unsent Archive</span>
           <h1 className="hero-title">{hero.title}</h1>

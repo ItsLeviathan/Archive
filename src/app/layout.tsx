@@ -18,12 +18,14 @@ import '@fontsource/space-grotesk/400.css';
 import '@fontsource/space-grotesk/500.css';
 import '@fontsource/space-grotesk/600.css';
 
+
 import { Atmosphere } from '@/components/Atmosphere';
 import { Nav } from '@/components/Nav';
 import { Footer } from '@/components/Footer';
 import { SearchOverlay } from '@/components/SearchOverlay';
 import { RandomOverlay } from '@/components/RandomOverlay';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { IdentityGate } from '@/components/IdentityGate';
 
 export const metadata: Metadata = {
   title: 'The Unsent Archive — a diary that belongs to everyone',
@@ -43,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Footer />
           <SearchOverlay />
           <RandomOverlay />
+          <IdentityGate />
         </ToastProvider>
       </body>
     </html>

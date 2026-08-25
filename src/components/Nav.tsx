@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useUsername } from '@/lib/userPrefsHooks';
+import { requestIdentity } from '@/lib/events';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { IconSearch } from './icons';
 import { requestOpenSearch, requestOpenRandom } from '@/lib/events';
 
 export function Nav() {
+  const username = useUsername();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const isStory = pathname?.startsWith('/story/');
@@ -26,6 +29,13 @@ export function Nav() {
       </Link>
       <div className="nav-links">
         <Link href="/explore" className="nav-text-item" data-current={pathname === '/explore' || pathname?.startsWith('/explore/')}>Explore</Link>
+        
+        {username && username !== 'Anonymous' ? (
+          <button type="button" className="nav-link nav-text-item" onClick={() => requestIdentity()}>
+            {username}
+          </button>
+        ) : null}
+
         <button
           type="button"
           className="nav-link nav-text-item"

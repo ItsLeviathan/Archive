@@ -1,6 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useUsername } from '@/lib/userPrefsHooks';
+import { requestIdentity } from '@/lib/events';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { COLLECTIONS } from '@/lib/data';
 import { CollectionId } from '@/lib/types';
@@ -10,6 +12,20 @@ import { useToast } from '@/contexts/ToastContext';
 type NameChoice = 'anon' | 'named' | null;
 
 export function WriteFlow() {
+
+  const storedUsername = useUsername();
+
+  useEffect(() => {
+    if (!storedUsername) requestIdentity();
+  }, [storedUsername]);
+
+  useEffect(() => {
+    if (storedUsername && storedUsername !== 'Anonymous' && nameChoice === null) {
+      setNameChoice('named');
+      setName(storedUsername);
+    }
+  }, [storedUsername]);
+
   const router = useRouter();
   const { showToast } = useToast();
 

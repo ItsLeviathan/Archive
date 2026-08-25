@@ -397,3 +397,40 @@ input,textarea{ font-family:inherit; color:inherit; background:none; border:0; o
 .footer-links a:hover{ color:var(--gold); }
 
 main{ position:relative; z-index:1; }
+
+.hero { isolation: isolate; } /* keep card above the constellation */
+.constellation { position: absolute; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+.constellation-node {
+  position: absolute; border-radius: 50%; pointer-events: auto; cursor: pointer;
+  background: radial-gradient(circle, var(--gold) 0%, rgba(203,165,104,0.15) 70%, transparent 100%);
+  opacity: .5; animation: drift linear infinite alternate;
+}
+.constellation-node:hover { opacity: 1; box-shadow: 0 0 14px 4px rgba(203,165,104,0.35); }
+.constellation-node:hover .constellation-tip { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+.constellation-tip {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(0);
+  white-space: nowrap; font-family: var(--font-body); font-style: italic; font-size: .78rem;
+  color: var(--ink-dim); background: rgba(14,12,10,0.92); border: 1px solid var(--rule);
+  padding: .35rem .7rem; border-radius: 8px; margin-bottom: 6px; opacity: 0;
+  transition: opacity .3s ease, transform .3s ease;
+}
+@keyframes drift { from { transform: translate(0,0); } to { transform: translate(14px,-18px); } }
+@media (prefers-reduced-motion: reduce) { .constellation-node { animation: none; } }
+.hero-card { position: relative; z-index: 1; }
+
+/* identity modal */
+.identity-overlay {
+  position: fixed; inset: 0; z-index: 90; background: rgba(14,12,10,0.9);
+  display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+}
+.identity-card {
+  max-width: 440px; text-align: center; border: 1px solid var(--rule-strong);
+  border-radius: 16px; padding: 2.4rem; background: linear-gradient(180deg, var(--charcoal-2), var(--brown) 160%);
+}
+.identity-card h2 { font-family: var(--font-display); font-style: italic; font-size: 1.6rem; margin: .8rem 0; }
+.identity-card p { font-family: var(--font-body); color: var(--ink-dim); font-size: .92rem; line-height: 1.6; }
+.identity-input {
+  margin-top: 1.4rem; width: 100%; text-align: center; font-family: var(--font-display);
+  font-style: italic; font-size: 1.1rem; border-bottom: 1px solid var(--rule-strong); padding-bottom: .6rem;
+}
+.identity-actions { margin-top: 1.6rem; display: flex; flex-direction: column; gap: .8rem; align-items: center; }
