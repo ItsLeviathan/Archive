@@ -11,6 +11,21 @@ import { useToast } from '@/contexts/ToastContext';
 
 type NameChoice = 'anon' | 'named' | null;
 
+// Mirrors the display format the archive uses everywhere else (e.g.
+// "AUGUST 25, 2026" / "3:30 PM"), but computed right here in the browser
+// so it reflects the writer's own clock and timezone. If this were instead
+// computed on the server when the request arrives, it would be stamped
+// with the server's timezone (typically UTC on most hosts) rather than the
+// writer's — which is what caused published times to look "wrong."
+function formatLocalNow() {
+  const d = new Date();
+  const date = d
+    .toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    .toUpperCase();
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return { date, time };
+}
+
 export function WriteFlow() {
 
   const storedUsername = useUsername();
@@ -57,6 +72,9 @@ export function WriteFlow() {
     if (!collection) return;
     setSubmitting(true);
     setError(null);
+    // Captured right at the moment of publishing, from the writer's own
+    // device — this is "the original time" that should end up on the story.
+    const { date, time } = formatLocalNow();
     try {
       const res = await fetch('/api/stories', {
         method: 'POST',
@@ -66,6 +84,8 @@ export function WriteFlow() {
           body,
           collection,
           author: nameChoice === 'named' ? name : undefined,
+          date,
+          time,
         }),
       });
       const data = await res.json();

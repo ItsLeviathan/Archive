@@ -36,4 +36,14 @@ export interface NewStoryInput {
   body: string;
   collection: CollectionId;
   author?: string;
+  /**
+   * Pre-formatted date/time as the writer's own device clock saw it at the
+   * moment they published (e.g. "AUGUST 25, 2026" / "3:30 PM"). Computed
+   * client-side in WriteFlow and passed through here because computing it
+   * on the server would use the server's timezone, not the writer's —
+   * which is wrong for a "this is when I wrote this" timestamp.
+   * Optional so older/non-JS clients still get a (server-time) fallback.
+   */
+  date?: string;
+  time?: string;
 }

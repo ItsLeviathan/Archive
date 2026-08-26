@@ -150,12 +150,14 @@ export async function getRandomStory(excludeId?: string): Promise<Story | undefi
   return row ? rowToStory(row as StoryRow) : undefined;
 }
 
-function estimateReadingTime(text: string): string {
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  const mins = Math.max(1, Math.round(words / 180));
-  return `${mins} min read`;
-}
-
+/**
+ * Fallback formatter — ONLY used if the client didn't send its own local
+ * date/time (e.g. JS-disabled clients, or a raw API call). This runs on
+ * the server, so without an explicit IANA zone it renders in whatever
+ * timezone the server process happens to be in (UTC on most hosts), which
+ * will NOT match the writer's local clock. Prefer input.date/input.time
+ * whenever they're present — see createStory below.
+ */
 function formatNow() {
   const d = new Date();
   const date = d
@@ -168,7 +170,14 @@ function formatNow() {
 const LAYOUTS = ['horizontal', 'split', 'minimal', 'typographic', 'small'] as const;
 
 export async function createStory(input: NewStoryInput): Promise<Story> {
-  const { date, time } = formatNow();
+  // Prefer the timestamp captured on the writer's own device at the moment
+  // they published — that's "the original time" from their point of view.
+  // Only fall back to server time if the client genuinely didn't send one.
+  const clientDate = input.date?.trim();
+  const clientTime = input.time?.trim();
+  const { date, time } =
+    clientDate && clientTime ? { date: clientDate, time: clientTime } : formatNow();
+
   const paras = input.body
     .trim()
     .split(/\n{2,}/)
@@ -209,6 +218,12 @@ export async function createStory(input: NewStoryInput): Promise<Story> {
 
   if (error) throw error;
   return rowToStory(data as StoryRow);
+}
+
+function estimateReadingTime(text: string): string {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const mins = Math.max(1, Math.round(words / 180));
+  return `${mins} min read`;
 }
 
 /** Atomic increment/decrement via a Postgres function, so two people

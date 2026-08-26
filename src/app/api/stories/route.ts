@@ -56,6 +56,18 @@ export async function POST(req: NextRequest) {
   const body = typeof payload.body === 'string' ? payload.body.trim() : '';
   const collection = payload.collection;
   const author = typeof payload.author === 'string' ? payload.author.trim() : undefined;
+  // Sent by WriteFlow from the writer's own device clock (see WriteFlow.tsx).
+  // Computing this on the server instead would stamp every story with the
+  // server's timezone (usually UTC), not the writer's — a plain string, so
+  // just cap the length rather than trying to parse/validate a format.
+  const date =
+    typeof payload.date === 'string' && payload.date.trim().length <= 40
+      ? payload.date.trim()
+      : undefined;
+  const time =
+    typeof payload.time === 'string' && payload.time.trim().length <= 20
+      ? payload.time.trim()
+      : undefined;
 
   // --- server-side validation (unchanged) ---
   if (title.length < 2 || title.length > 200) {
@@ -83,6 +95,8 @@ export async function POST(req: NextRequest) {
     body,
     collection: collection as CollectionId,
     author,
+    date,
+    time,
   });
 
   return NextResponse.json({ story }, { status: 201 });

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 // Self-hosted via @fontsource (bundled at build time — no runtime dependency
@@ -33,6 +33,18 @@ export const metadata: Metadata = {
     'A living archive of things people were never able to say. Read, write, and keep the quiet things.',
 };
 
+// viewportFit: 'cover' lets the CSS in globals.css read env(safe-area-inset-*)
+// so the nav, footer, toast, and mobile menu clear the notch / home-indicator
+// on iOS instead of sitting flush against it. themeColor tints the mobile
+// browser chrome (status bar / address bar) to match the app's background
+// instead of defaulting to white, which otherwise flashes on load.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#131113',
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -41,7 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <a className="skip-link" href="#main">Skip to content</a>
           <Atmosphere />
           <Nav />
-          <main id="main" tabIndex={-1}>{children}
+          <main id="main" tabIndex={-1}>
             <PageTransition>{children}</PageTransition>
           </main>
           <Footer />
