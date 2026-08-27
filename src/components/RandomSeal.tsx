@@ -12,7 +12,7 @@ export function RandomSeal() {
         onClick={() => requestOpenRandom()}
         aria-label="Open a stranger's heart — read a random story"
       >
-        <IconLogo />
+        <IconLogo sparks />
       </button>
       <p className="seal-label">Open a stranger&rsquo;s heart</p>
       <p className="seal-sub">You never know what you&rsquo;ll find</p>

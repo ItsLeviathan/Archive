@@ -1,14 +1,21 @@
-export function IconLogo(props: React.SVGProps<SVGSVGElement>) {
+interface IconLogoProps extends React.SVGProps<SVGSVGElement> {
+  sparks?: boolean;
+}
+
+export function IconLogo({ sparks = false, ...props }: IconLogoProps) {
   return (
-    <svg viewBox="0 0 64 64" fill="none" {...props}>
+    <svg viewBox="0 0 64 64" {...props}>
       <path
-        d="M41.3 12.06A22 22 0 1 1 22.7 12.06"
-        stroke="currentColor"
-        strokeWidth="2.6"
-        strokeLinecap="round"
+        d="M32 6 C18 20 12 28 12 38 A20 17 0 0 0 52 38 C52 28 46 20 32 6 Z"
+        fill="currentColor"
+        transform="rotate(-14 32 32)"
       />
-      <circle cx="33.6" cy="6.4" r="2.3" fill="currentColor" />
-      <circle cx="38.9" cy="3.3" r="1.1" fill="currentColor" opacity="0.55" />
+      {sparks && (
+        <>
+          <circle cx="47" cy="9" r="3.1" fill="currentColor" />
+          <circle cx="54" cy="4" r="1.4" fill="currentColor" opacity="0.55" />
+        </>
+      )}
     </svg>
   );
 }
