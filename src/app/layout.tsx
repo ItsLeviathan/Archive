@@ -14,9 +14,12 @@ import '@fontsource/newsreader/400.css';
 import '@fontsource/newsreader/500.css';
 import '@fontsource/newsreader/400-italic.css';
 import '@fontsource/newsreader/500-italic.css';
-import '@fontsource/space-grotesk/400.css';
-import '@fontsource/space-grotesk/500.css';
-import '@fontsource/space-grotesk/600.css';
+// Fragment Mono only ships one weight (regular) plus italic — that's the
+// whole family, so there's no 500/600 to import. It reads like a
+// typewritten ledger entry for labels/metadata/nav, which fits a diary
+// that stamps every story with a date and time.
+import '@fontsource/fragment-mono/400.css';
+import '@fontsource/fragment-mono/400-italic.css';
 
 import { Atmosphere } from '@/components/Atmosphere';
 import { Nav } from '@/components/Nav';
@@ -42,7 +45,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#131113',
+  themeColor: '#221a10',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
