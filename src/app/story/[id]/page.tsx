@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getStory } from '@/lib/store';
-import { getCollectionPhoto } from '@/lib/photos';
+import { getStoryPhoto } from '@/lib/photos';
 import { collectionById } from '@/lib/data';
 import { metaDots } from '@/lib/format';
 import { FeltButton } from '@/components/FeltButton';
@@ -32,7 +32,9 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
   if (!story) notFound();
 
   const col = collectionById(story.collection);
-  const photo = await getCollectionPhoto(story.collection);
+  // Keyed to this specific story, not just its collection — two stories
+  // in "Goodbye" won't show the identical photo.
+  const photo = await getStoryPhoto(story.id, story.collection);
 
   return (
     <article className="story-view container">
