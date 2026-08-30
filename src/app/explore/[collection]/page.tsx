@@ -2,8 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { listByCollection } from '@/lib/store';
+import { getCollectionPhoto } from '@/lib/photos';
 import { collectionById } from '@/lib/data';
 import { StoryCard } from '@/components/StoryCard';
+import { AtmosphericPhoto } from '@/components/AtmosphericPhoto';
 import { IconArrowLeft } from '@/components/icons';
 
 // The 8 collection slugs are fixed, but which stories appear inside each
@@ -26,15 +28,21 @@ export default async function CollectionPage(
   const col = collectionById(collection);
   if (!col) notFound();
 
-  const stories = await listByCollection(collection);
+  const [stories, photo] = await Promise.all([
+    listByCollection(collection),
+    getCollectionPhoto(col.id),
+  ]);
 
   return (
     <div className="container">
       <Link href="/explore" className="back-link"><IconArrowLeft /> Back to collections</Link>
-      <div className="collection-header">
-        <span className="eyebrow">Collection</span>
-        <h1>{col.label}</h1>
-        <p>{col.desc}</p>
+      <div className="atmo-frame">
+        <AtmosphericPhoto photo={photo} />
+        <div className="collection-header atmo-content">
+          <span className="eyebrow">Collection</span>
+          <h1>{col.label}</h1>
+          <p>{col.desc}</p>
+        </div>
       </div>
       {stories.length ? (
         <div className="stories-grid">

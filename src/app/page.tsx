@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { listStories } from '@/lib/store';
+import { getCollectionPhoto } from '@/lib/photos';
 import { COLLECTIONS } from '@/lib/data';
 import { StoryCard } from '@/components/StoryCard';
 import { CollectionTile } from '@/components/CollectionTile';
 import { RandomSeal } from '@/components/RandomSeal';
 import { HeroConstellation } from '@/components/HeroConstellation';
+import { AtmosphericPhoto } from '@/components/AtmosphericPhoto';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,9 +16,14 @@ export default async function HomePage() {
   const featured = stories.slice(1, 9);
   const constellationNodes = stories.slice(1, 18).map((s) => ({ id: s.id, title: s.title }));
 
+  // Themed to whichever story is currently featured, so the hero backdrop
+  // changes along with the story it's introducing.
+  const heroPhoto = hero ? await getCollectionPhoto(hero.collection) : null;
+
   return (
     <>
       <section className="hero">
+        {heroPhoto && <AtmosphericPhoto photo={heroPhoto} />}
         <HeroConstellation nodes={constellationNodes} />
         <div className="hero-content">
           <span className="eyebrow hero-kicker">The Unsent Archive</span>

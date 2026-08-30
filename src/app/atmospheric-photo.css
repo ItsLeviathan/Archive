@@ -1,0 +1,44 @@
+/* ============================================================
+   ATMOSPHERIC PHOTOGRAPHY — real photos used strictly as backdrop.
+   Heavily darkened, slightly desaturated, soft-edged — always sits
+   behind the section's real content, and behind the site-wide grain
+   layer's visual weight even though it's DOM-local to one section.
+   ============================================================ */
+
+/* Wrap a header/section's existing content in these two classes to
+   place a photo behind it: <div className="atmo-frame">
+     <AtmosphericPhoto photo={photo} />
+     <div className="atmo-content"> ...existing markup... </div>
+   </div> */
+.atmo-frame{ position:relative; overflow:hidden; }
+.atmo-content{ position:relative; z-index:1; }
+
+.atmospheric-photo{
+  position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+}
+.atmospheric-photo::after{
+  content:'';
+  position:absolute; inset:0;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--void) 45%, transparent) 0%, var(--void) 92%),
+    radial-gradient(ellipse at center, transparent 25%, var(--void) 100%);
+}
+.atmospheric-photo-img{
+  object-fit:cover;
+  filter:saturate(0.55) brightness(0.5) contrast(1.05);
+  transform:scale(1.03); /* covers any edge softening from the gradient above */
+}
+.atmospheric-photo-credit{
+  position:absolute; bottom:.6rem; right:.8rem; z-index:1;
+  font-family:var(--font-ui); font-size:.6rem; letter-spacing:.06em;
+  color:var(--ink-faint); opacity:0; pointer-events:auto;
+  transition:opacity var(--dur-s) var(--ease);
+}
+.atmo-frame:hover .atmospheric-photo-credit,
+.atmospheric-photo-credit:focus-visible{ opacity:.7; }
+
+@media (hover:none) and (pointer:coarse){
+  /* No hover on touch devices — keep the credit faintly visible instead
+     of permanently hidden. */
+  .atmospheric-photo-credit{ opacity:.45; }
+}
