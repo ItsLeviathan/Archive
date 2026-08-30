@@ -10,7 +10,15 @@
      <AtmosphericPhoto photo={photo} />
      <div className="atmo-content"> ...existing markup... </div>
    </div> */
-.atmo-frame{ position:relative; overflow:hidden; }
+.atmo-frame{
+  position:relative; overflow:hidden;
+  /* Breathing room between the text and the photo's edges. The photo
+     itself (.atmospheric-photo, positioned absolute/inset:0 below) still
+     spans the full frame edge-to-edge — only the real content is inset
+     by this padding. clamp()'s floor value (2.75rem / 1.5rem) is what
+     keeps this from collapsing toward zero on narrow phones. */
+  padding: clamp(2.75rem, 9vw, 4.5rem) clamp(1.5rem, 7vw, 3rem);
+}
 .atmo-content{ position:relative; z-index:1; }
 
 .atmospheric-photo{

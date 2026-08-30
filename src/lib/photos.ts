@@ -18,11 +18,11 @@ import { CollectionId } from './types';
  * VARIETY: each collection resolves to a pool of ~15 candidate photos
  * (one Pexels search per collection, cached for an hour — 8 collections
  * means at most 8 requests/hour, comfortably under the free-tier rate
- * limit). Individual stories are then assigned a photo *deterministically*
- * from that pool based on a hash of their story id: different stories in
- * the same collection get different (but still thematically matching)
- * photography, while the same story always shows the same photo across
- * visits/reloads rather than flickering to something new each time.
+ * limit). A photo is then picked *at random* from that pool on every
+ * request — since the pages calling this already use
+ * `export const dynamic = 'force-dynamic'`, every visit re-runs this
+ * server-side, so different people (or the same person reloading) can
+ * see a different photo from the same pool each time.
  *
  * Works with ZERO setup: if PEXELS_API_KEY isn't set, or the request
  * fails for any reason (bad key, rate limit, network hiccup), this
@@ -87,14 +87,8 @@ function fallbackPool(collection: CollectionId): AtmosphericPhoto[] {
   }));
 }
 
-/** Small deterministic string hash (djb2) — same story id always maps to
- * the same index, so a given story's photo doesn't change on re-render. */
-function hashToIndex(id: string, size: number): number {
-  let hash = 5381;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 33) ^ id.charCodeAt(i);
-  }
-  return Math.abs(hash) % size;
+function pickRandom(pool: AtmosphericPhoto[]): AtmosphericPhoto {
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 async function getCollectionPhotoPool(collection: CollectionId): Promise<AtmosphericPhoto[]> {
@@ -138,18 +132,22 @@ async function getCollectionPhotoPool(collection: CollectionId): Promise<Atmosph
   }
 }
 
-/** One photo for a *specific* story — deterministically chosen from a
- * pool of candidates matching that story's collection, so stories in
- * the same collection don't all show the identical photo. */
+/** One photo for a specific story, picked at random (per request) from
+ * the pool of candidates matching that story's collection. `storyId` is
+ * accepted for API-compatibility with call sites and possible future use
+ * (e.g. reintroducing a "stable per story" mode), but isn't used to seed
+ * the pick — every request can land on a different photo. */
 export async function getStoryPhoto(storyId: string, collection: CollectionId): Promise<AtmosphericPhoto> {
+  void storyId;
   const pool = await getCollectionPhotoPool(collection);
-  return pool[hashToIndex(storyId, pool.length)];
+  return pickRandom(pool);
 }
 
-/** A single representative photo for a collection as a whole — used on
- * pages like the collection header, where there's no one story to key
- * off. Always the first (top-ranked) match in that collection's pool. */
+/** A representative photo for a collection as a whole — used on pages
+ * like the collection header, where there's no one story to key off.
+ * Picked at random (per request) from that collection's pool, same as
+ * getStoryPhoto, so the header varies on repeat visits too. */
 export async function getCollectionPhoto(collection: CollectionId): Promise<AtmosphericPhoto> {
   const pool = await getCollectionPhotoPool(collection);
-  return pool[0];
+  return pickRandom(pool);
 }
