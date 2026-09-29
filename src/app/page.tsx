@@ -1,94 +1,64 @@
 import Link from 'next/link';
 import { listStories } from '@/lib/store';
-import { getCollectionPhoto } from '@/lib/photos';
-import { COLLECTIONS } from '@/lib/data';
-import { StoryCard } from '@/components/StoryCard';
-import { CollectionTile } from '@/components/CollectionTile';
-import { RandomSeal } from '@/components/RandomSeal';
-import { HeroConstellation } from '@/components/HeroConstellation';
-import { AtmosphericPhoto } from '@/components/AtmosphericPhoto';
+import { EntryList } from '@/components/StoryCard';
+import { ChapterIndex } from '@/components/ChapterIndex';
+import { Pager, parsePage } from '@/components/Pager';
+import { RandomButton } from '@/components/RandomButton';
+import { IconPen } from '@/components/icons';
 
 export const dynamic = 'force-dynamic';
 
-export default async function HomePage() {
-  const stories = await listStories();
-  const hero = stories[0];
-  const featured = stories.slice(1, 9);
-  const constellationNodes = stories.slice(1, 18).map((s) => ({ id: s.id, title: s.title }));
+const PAGE_SIZE = 12;
 
-  // Themed to whichever story is currently featured, so the hero backdrop
-  // changes along with the story it's introducing.
-  const heroPhoto = hero ? await getCollectionPhoto(hero.collection) : null;
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string | string[] }>;
+}) {
+  const page = parsePage((await searchParams).page);
+  // One extra row tells us whether an "Older entries" page exists.
+  const rows = await listStories(PAGE_SIZE + 1, (page - 1) * PAGE_SIZE);
+  const stories = rows.slice(0, PAGE_SIZE);
+  const hasMore = rows.length > PAGE_SIZE;
 
   return (
-    <>
-      <section className="hero">
-        {heroPhoto && <AtmosphericPhoto photo={heroPhoto} />}
-        <HeroConstellation nodes={constellationNodes} />
-        <div className="hero-content">
-          <span className="eyebrow hero-kicker">The Unsent Archive</span>
-          <h1 className="hero-statement">
-            Some words are never spoken.
-            <br />
-            They still deserve somewhere to live.
+    <div className="container">
+      {page === 1 && (
+        <section className="cover">
+          <p className="hand cover-greeting">Dear stranger,</p>
+          <h1 className="cover-title">
+            Some words are never spoken. They still deserve somewhere to live.
           </h1>
-          <Link href="/write" className="hero-cta">
-            Write what you never said.
-          </Link>
-          <p className="hero-sub">
-            Left anonymously, kept gently &mdash; a quiet room for the things
-            you couldn&rsquo;t say out loud.
+          <p className="cover-sub">
+            A shared diary of the things people couldn&rsquo;t say out loud &mdash;
+            left anonymously, kept gently.
           </p>
+          <div className="cover-actions">
+            <Link href="/write" className="btn-primary"><IconPen /> Write an entry</Link>
+            <RandomButton className="btn-ghost">Open a random page</RandomButton>
+          </div>
+        </section>
+      )}
 
-          {hero && (
-            <Link href={`/story/${hero.id}`} className="hero-featured">
-              <span className="hero-featured-label">Tonight, someone wrote</span>
-              <span className="hero-featured-title">&ldquo;{hero.title}&rdquo;</span>
-            </Link>
+      <div className="with-sidebar">
+        <div>
+          <div className="list-head">
+            <h2 className="list-title">{page === 1 ? 'Latest entries' : 'Older entries'}</h2>
+          </div>
+          {stories.length ? (
+            <EntryList stories={stories} />
+          ) : (
+            <div className="empty-state">
+              <p className="em-title">The pages are still blank.</p>
+              <p><Link href="/write">Write the first entry</Link>.</p>
+            </div>
           )}
-
-          <div className="hero-scroll-cue" aria-hidden="true">
-            <span className="line" />
-            <span>Scroll</span>
-          </div>
+          <Pager basePath="/" page={page} hasMore={hasMore} />
         </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <div className="section-head">
-            <div>
-              <span className="eyebrow section-eyebrow">Wander</span>
-              <h2>Explore feelings</h2>
-            </div>
-            <Link href="/explore" className="section-link">All collections</Link>
-          </div>
-          <div className="collections-grid">
-            {COLLECTIONS.map((c) => (
-              <CollectionTile key={c.id} collection={c} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <div className="section-head">
-            <div>
-              <span className="eyebrow section-eyebrow">Recently left behind</span>
-              <h2>From the archive</h2>
-            </div>
-            <Link href="/keep" className="section-link">Your kept stories</Link>
-          </div>
-          <div className="stories-grid">
-            {featured.map((s) => (
-              <StoryCard key={s.id} story={s} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <RandomSeal />
-    </>
+        <aside className="sidebar">
+          <ChapterIndex />
+        </aside>
+      </div>
+    </div>
   );
 }

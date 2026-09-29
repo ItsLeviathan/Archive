@@ -103,16 +103,18 @@ export async function getStory(id: string): Promise<Story | undefined> {
 
 export async function listByCollection(
   collectionId: string,
-  limit: number = DEFAULT_PAGE_SIZE
+  limit: number = DEFAULT_PAGE_SIZE,
+  offset: number = 0
 ): Promise<Story[]> {
   const safeLimit = Math.max(1, Math.min(limit, MAX_PAGE_SIZE));
+  const safeOffset = Math.max(0, offset);
 
   const { data, error } = await supabase
     .from('stories')
     .select(SELECT_COLUMNS)
     .eq('collection', collectionId)
     .order('created_at', { ascending: false })
-    .limit(safeLimit);
+    .range(safeOffset, safeOffset + safeLimit - 1);
 
   if (error) throw error;
   return (data || []).map(rowToStory);

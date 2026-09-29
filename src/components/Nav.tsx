@@ -1,120 +1,78 @@
 'use client';
 
 import Link from 'next/link';
-import { useUsername } from '@/lib/userPrefsHooks';
-import { requestIdentity } from '@/lib/events';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { IconSearch, IconLogo, IconMenu, IconClose } from './icons';
+import { useKeptIds } from '@/lib/userPrefsHooks';
 import { requestOpenSearch, requestOpenRandom } from '@/lib/events';
+import { ThemeToggle } from './ThemeToggle';
+import { IconSearch, IconLogo, IconPen, IconBook, IconKeep, IconShuffle, IconDiary } from './icons';
+
+function useSection() {
+  const pathname = usePathname() ?? '/';
+  return {
+    pathname,
+    isToday: pathname === '/',
+    isChapters: pathname.startsWith('/explore'),
+    isWrite: pathname === '/write',
+    isKept: pathname === '/keep',
+    storyId: pathname.startsWith('/story/') ? pathname.split('/')[2] : undefined,
+  };
+}
 
 export function Nav() {
-  const username = useUsername();
-  const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const isStory = pathname?.startsWith('/story/');
-  const currentStoryId = isStory ? pathname!.split('/')[2] : undefined;
-
-  useEffect(() => {
-    function onScroll() { setScrolled(window.scrollY > 30); }
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  // Close the mobile menu on navigation, and stop the page behind it from
-  // scrolling while it's open — otherwise a long story page keeps scrolling
-  // underneath the full-screen menu on iOS/Android.
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
-  useEffect(() => {
-    if (!menuOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setMenuOpen(false); }
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [menuOpen]);
-
-  function openRandomFromMenu() {
-    setMenuOpen(false);
-    requestOpenRandom(currentStoryId);
-  }
+  const s = useSection();
+  const keptCount = useKeptIds().size;
 
   return (
     <>
-      <nav className={`site-nav ${scrolled ? 'is-scrolled' : ''} ${isStory ? 'is-story' : ''}`} aria-label="Primary">
-        <Link href="/" className="logo">
-          <IconLogo className="logo-mark" aria-hidden="true" />
-          <span className="logo-word">unsent archive</span>
-        </Link>
-        <div className="nav-links">
-          <Link href="/explore" className="nav-text-item" data-current={pathname === '/explore' || pathname?.startsWith('/explore/')}>Explore</Link>
-
-          {username && username !== 'Anonymous' ? (
-            <button type="button" className="nav-link nav-text-item" onClick={() => requestIdentity()}>
-              {username}
-            </button>
-          ) : null}
-
-          <button
-            type="button"
-            className="nav-link nav-text-item"
-            onClick={() => requestOpenRandom(currentStoryId)}
-          >
-            Random
-          </button>
-          <Link href="/write" className="nav-text-item" data-current={pathname === '/write'}>Write</Link>
-          <Link href="/keep" className="nav-keep-link" data-current={pathname === '/keep'}>Keep</Link>
-          <button
-            type="button"
-            className="nav-icon-btn nav-search-btn"
-            onClick={() => requestOpenSearch()}
-            aria-label="Search the archive"
-          >
-            <IconSearch />
-          </button>
-          {/* Only visible at the mobile breakpoint (see globals.css) — this is
-              the replacement for Explore/Random/Write once they're hidden
-              from the bar above, so nothing becomes unreachable on a phone. */}
-          <button
-            type="button"
-            className="nav-icon-btn nav-menu-btn"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Open menu"
-            aria-haspopup="true"
-            aria-expanded={menuOpen}
-          >
-            <IconMenu />
-          </button>
-        </div>
-      </nav>
-
-      <div
-        className={`mobile-menu ${menuOpen ? 'is-active' : ''}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Menu"
-        aria-hidden={!menuOpen}
-      >
-        <button type="button" className="mobile-menu-close" onClick={() => setMenuOpen(false)} aria-label="Close menu">
-          <IconClose />
-        </button>
-        <nav className="mobile-menu-links" aria-label="Mobile">
-          <Link href="/explore" data-current={pathname === '/explore' || pathname?.startsWith('/explore/')}>
-            Explore
+      <header className="topbar">
+        <div className="topbar-inner">
+          <Link href="/" className="logo" aria-label="The Unsent Archive — home">
+            <IconLogo className="logo-mark" aria-hidden="true" />
+            <span className="logo-word">The Unsent Archive</span>
           </Link>
-          <button type="button" onClick={openRandomFromMenu}>Random</button>
-          <Link href="/write" data-current={pathname === '/write'}>Write</Link>
-          <Link href="/keep" data-current={pathname === '/keep'}>Keep</Link>
-        </nav>
-        <button type="button" className="mobile-menu-identity" onClick={() => { setMenuOpen(false); requestIdentity(); }}>
-          {username && username !== 'Anonymous' ? `Writing as ${username}` : 'Set your name'}
+
+          <nav className="topnav" aria-label="Primary">
+            <Link href="/" aria-current={s.isToday ? 'page' : undefined}>Entries</Link>
+            <Link href="/explore" aria-current={s.isChapters ? 'page' : undefined}>Chapters</Link>
+            <Link href="/keep" aria-current={s.isKept ? 'page' : undefined}>
+              Kept{keptCount > 0 && <span className="count-badge">{keptCount}</span>}
+            </Link>
+            <button type="button" onClick={() => requestOpenRandom(s.storyId)}>Random page</button>
+          </nav>
+
+          <div className="topbar-tools">
+            <button type="button" className="search-trigger" onClick={() => requestOpenSearch()} aria-label="Search the diary">
+              <IconSearch />
+              <span className="search-trigger-text">Search</span>
+              <kbd className="search-trigger-kbd">/</kbd>
+            </button>
+            <ThemeToggle />
+            <Link href="/write" className="btn-write" aria-current={s.isWrite ? 'page' : undefined}>
+              <IconPen /> <span>Write</span>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Phones: every primary destination one thumb-tap away, always visible. */}
+      <nav className="tabbar" aria-label="Primary (mobile)">
+        <Link href="/" aria-current={s.isToday ? 'page' : undefined}>
+          <IconDiary /><span>Entries</span>
+        </Link>
+        <Link href="/explore" aria-current={s.isChapters ? 'page' : undefined}>
+          <IconBook /><span>Chapters</span>
+        </Link>
+        <Link href="/write" className="tab-write" aria-current={s.isWrite ? 'page' : undefined}>
+          <IconPen /><span>Write</span>
+        </Link>
+        <Link href="/keep" aria-current={s.isKept ? 'page' : undefined}>
+          <IconKeep /><span>Kept{keptCount > 0 ? ` (${keptCount})` : ''}</span>
+        </Link>
+        <button type="button" onClick={() => requestOpenRandom(s.storyId)}>
+          <IconShuffle /><span>Random</span>
         </button>
-      </div>
+      </nav>
     </>
   );
 }

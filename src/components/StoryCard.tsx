@@ -1,33 +1,45 @@
 import Link from 'next/link';
 import { Story } from '@/lib/types';
-import { metaDots } from '@/lib/format';
+import { collectionById } from '@/lib/data';
+import { diaryDate, groupByDate, prettyDate } from '@/lib/format';
 import { FeltButton } from './FeltButton';
 import { KeepButton } from './KeepButton';
 
-
-function CardHitArea({ story }: { story: Story }) {
+/** One diary entry in a list. `showDate` is for lists that aren't already
+ * grouped under a date heading (Kept). */
+export function StoryCard({ story, showDate = false }: { story: Story; showDate?: boolean }) {
+  const chapter = collectionById(story.collection);
   return (
-    <Link href={`/story/${story.id}`} className="card-hit" aria-label={`Read: ${story.title}`} />
-  );
-}
-
-export function StoryCard({ story }: { story: Story }) {
-  return (
-    <article className="story-row">
-      <CardHitArea story={story} />
-      <div className="story-row-top">
-        <span className="eyebrow">{story.emotion}</span>
-        <span className="meta-line">{metaDots([story.author, story.date])}</span>
+    <article className="entry">
+      <Link href={`/story/${story.id}`} className="card-hit" aria-label={`Read: ${story.title}`} />
+      <div className="entry-meta">
+        <span className="stamp">{showDate ? `${prettyDate(story.date)} · ${story.time}` : story.time}</span>
+        <Link href={`/explore/${story.collection}`} className="tag">{chapter?.label ?? story.emotion}</Link>
+        <span className="stamp entry-read">{story.readingTime}</span>
       </div>
-      <h3 className="story-row-title">{story.title}</h3>
-      <p className="story-row-excerpt">{story.excerpt}</p>
-      <div className="story-row-foot">
+      <h3 className="entry-title">{story.title}</h3>
+      <p className="entry-excerpt">{story.excerpt}</p>
+      <div className="entry-foot">
+        <span className="signature">&mdash; {story.author}</span>
         <span className="control-row">
           <FeltButton id={story.id} initialFelt={story.felt} />
           <KeepButton id={story.id} />
         </span>
-        <span className="story-row-read">Read &rarr;</span>
       </div>
     </article>
+  );
+}
+
+/** Entries grouped under diary-style date headings, newest day first. */
+export function EntryList({ stories }: { stories: Story[] }) {
+  return (
+    <div className="entry-list">
+      {groupByDate(stories).map((g) => (
+        <section key={g.date} className="day" aria-label={diaryDate(g.date)}>
+          <h2 className="day-head"><span>{diaryDate(g.date)}</span></h2>
+          {g.stories.map((s) => <StoryCard key={s.id} story={s} />)}
+        </section>
+      ))}
+    </div>
   );
 }

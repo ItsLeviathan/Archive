@@ -1,95 +1,70 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import { listStories } from '@/lib/store';
-import { getStoryPhoto } from '@/lib/photos';
-import { COLLECTIONS } from '@/lib/data';
-import { StoryCard } from '@/components/StoryCard';
-import { CollectionTile } from '@/components/CollectionTile';
-import { RandomSeal } from '@/components/RandomSeal';
-import { HeroConstellation } from '@/components/HeroConstellation';
-import { AtmosphericPhoto } from '@/components/AtmosphericPhoto';
+import { notFound } from 'next/navigation';
+import { listByCollection } from '@/lib/store';
+import { COLLECTIONS, collectionById } from '@/lib/data';
+import { chapterNumeral } from '@/lib/format';
+import { EntryList } from '@/components/StoryCard';
+import { ChapterIndex } from '@/components/ChapterIndex';
+import { Pager, parsePage } from '@/components/Pager';
+import { IconArrowLeft } from '@/components/icons';
 
 export const dynamic = 'force-dynamic';
 
-export default async function HomePage() {
-  const stories = await listStories();
-  const hero = stories[0];
-  const featured = stories.slice(1, 9);
-  const constellationNodes = stories.slice(1, 18).map((s) => ({ id: s.id, title: s.title }));
+const PAGE_SIZE = 12;
 
-  // Keyed to this specific story (not just its collection), so a
-  // different hero story shows a different backdrop even within the
-  // same collection.
-  const heroPhoto = hero ? await getStoryPhoto(hero.id, hero.collection) : null;
+export async function generateMetadata(
+  { params }: { params: Promise<{ collection: string }> }
+): Promise<Metadata> {
+  const col = collectionById((await params).collection);
+  return { title: col ? `${col.label} — The Unsent Archive` : 'The Unsent Archive' };
+}
+
+export default async function CollectionPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ collection: string }>;
+  searchParams: Promise<{ page?: string | string[] }>;
+}) {
+  const { collection } = await params;
+  const col = collectionById(collection);
+  if (!col) notFound();
+
+  const page = parsePage((await searchParams).page);
+  const rows = await listByCollection(col.id, PAGE_SIZE + 1, (page - 1) * PAGE_SIZE);
+  const stories = rows.slice(0, PAGE_SIZE);
+  const hasMore = rows.length > PAGE_SIZE;
+  const index = COLLECTIONS.findIndex((c) => c.id === col.id);
 
   return (
-    <>
-      <section className="hero">
-        {heroPhoto && <AtmosphericPhoto photo={heroPhoto} />}
-        <HeroConstellation nodes={constellationNodes} />
-        <div className="hero-content">
-          <span className="eyebrow hero-kicker">The Unsent Archive</span>
-          <h1 className="hero-statement">
-            Some words are never spoken.
-            <br />
-            They still deserve somewhere to live.
-          </h1>
-          <Link href="/write" className="hero-cta">
-            Write what you never said.
-          </Link>
-          <p className="hero-sub">
-            Left anonymously, kept gently &mdash; a quiet room for the things
-            you couldn&rsquo;t say out loud.
-          </p>
+    <div className="container">
+      <header className="page-head">
+        <Link href="/explore" className="back-link"><IconArrowLeft /> All chapters</Link>
+        <span className="stamp">Chapter {chapterNumeral(index)}</span>
+        <h1>{col.label}</h1>
+        <p>{col.desc}</p>
+      </header>
 
-          {hero && (
-            <Link href={`/story/${hero.id}`} className="hero-featured">
-              <span className="hero-featured-label">Tonight, someone wrote</span>
-              <span className="hero-featured-title">&ldquo;{hero.title}&rdquo;</span>
-            </Link>
+      <div className="with-sidebar">
+        <div>
+          {stories.length ? (
+            <EntryList stories={stories} />
+          ) : (
+            <div className="empty-state">
+              <p className="em-title">No one has written in this chapter yet.</p>
+              <p><Link href={`/write?chapter=${col.id}`}>Be the first to write here</Link>.</p>
+            </div>
           )}
-
-          <div className="hero-scroll-cue" aria-hidden="true">
-            <span className="line" />
-            <span>Scroll</span>
-          </div>
+          <Pager basePath={`/explore/${col.id}`} page={page} hasMore={hasMore} />
         </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <div className="section-head">
-            <div>
-              <span className="eyebrow section-eyebrow">Wander</span>
-              <h2>Explore feelings</h2>
-            </div>
-            <Link href="/explore" className="section-link">All collections</Link>
-          </div>
-          <div className="collections-grid">
-            {COLLECTIONS.map((c) => (
-              <CollectionTile key={c.id} collection={c} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <div className="section-head">
-            <div>
-              <span className="eyebrow section-eyebrow">Recently left behind</span>
-              <h2>From the archive</h2>
-            </div>
-            <Link href="/keep" className="section-link">Your kept stories</Link>
-          </div>
-          <div className="stories-grid">
-            {featured.map((s) => (
-              <StoryCard key={s.id} story={s} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <RandomSeal />
-    </>
+        <aside className="sidebar">
+          <ChapterIndex current={col.id} />
+          <Link href={`/write?chapter=${col.id}`} className="sidebar-cta">
+            Write in &ldquo;{col.label}&rdquo; &rarr;
+          </Link>
+        </aside>
+      </div>
+    </div>
   );
 }

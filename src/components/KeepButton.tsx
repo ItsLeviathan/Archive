@@ -12,19 +12,20 @@ export function KeepButton({ id, withLabel = false }: { id: string; withLabel?: 
 
   function handleClick() {
     const nowKept = keptStore.toggle(id);
-    showToast(nowKept ? 'Kept close.' : 'Removed from Keep.');
+    showToast(nowKept ? 'Bookmarked in your Kept pages.' : 'Removed from Kept.');
   }
 
   return (
     <button
       type="button"
-      className={`keep-btn ${isKept ? 'is-kept' : ''}`}
-      onClick={(e) => { e.stopPropagation(); handleClick(); }}
+      className={`chip-btn keep-btn ${isKept ? 'is-on' : ''}`}
+      onClick={handleClick}
       aria-pressed={isKept}
-      aria-label={isKept ? 'Remove from your kept stories' : 'Keep this story close'}
+      aria-label={isKept ? 'Remove from Kept' : 'Keep this page'}
+      title={isKept ? 'Kept' : 'Keep this page'}
     >
-      <IconKeep />
-      {withLabel && <span>{isKept ? 'Kept close' : 'Keep this close'}</span>}
+      <IconKeep aria-hidden="true" />
+      {withLabel && <span>{isKept ? 'Kept' : 'Keep'}</span>}
     </button>
   );
 }

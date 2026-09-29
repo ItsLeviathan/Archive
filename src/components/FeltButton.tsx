@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useFeltIds } from '@/lib/userPrefsHooks';
 import { feltStore } from '@/lib/localSetStore';
+import { IconHeart } from './icons';
 
 export function FeltButton({ id, initialFelt }: { id: string; initialFelt: number }) {
   const felt = useFeltIds();
@@ -28,12 +29,14 @@ export function FeltButton({ id, initialFelt }: { id: string; initialFelt: numbe
   return (
     <button
       type="button"
-      className={`felt-btn ${isFelt ? 'is-felt' : ''}`}
-      onClick={(e) => { e.stopPropagation(); handleClick(); }}
+      className={`chip-btn felt-btn ${isFelt ? 'is-on' : ''}`}
+      onClick={handleClick}
       aria-pressed={isFelt}
+      aria-label={`I felt this — ${count} ${count === 1 ? 'person' : 'people'} felt it`}
+      title="I felt this"
     >
-      <span className="ember" aria-hidden="true" />
-      I felt this &middot; {count}
+      <IconHeart aria-hidden="true" />
+      <span>{count}</span>
     </button>
   );
 }

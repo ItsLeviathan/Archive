@@ -1,10 +1,10 @@
 # The Unsent Archive
 
-A cinematic, emotionally immersive storytelling site — built with Next.js
-(App Router), TypeScript, and Framer Motion — implementing the design brief
-in full: the hero story, the 8 poetic "Explore Feelings" collections, the
-four-step Write flow, the "Open a stranger's heart" random-discovery seal,
-Keep (personal saves), "I felt this," and search.
+A shared diary of things people never said — built with Next.js (App Router)
+and TypeScript. Entries are grouped by day like diary pages, organised into
+8 "chapters" (collections), written on a single autosaving page, bookmarked
+with Keep, and marked with "I felt this." Day and night (dark) themes follow
+the OS setting, with a toggle in the top bar.
 
 ## Quick start
 
@@ -26,9 +26,7 @@ database are required to run it locally; see "Current data layer" below.
   atmosphere) — these are intentionally *not* forced into Tailwind's
   utility syntax, because they're the visually distinctive parts of the
   design and are easier to read/maintain as real CSS.
-- **Framer Motion** for the paragraph reveal-on-scroll in the reading view
-  and for `prefers-reduced-motion` handling.
-- **@fontsource** (Fraunces, Newsreader, Space Grotesk) — self-hosted font
+- **@fontsource** (Fraunces, Newsreader, Fragment Mono, Caveat) — self-hosted font
   files bundled at build time, rather than a runtime Google Fonts request.
 
 ## Project structure
