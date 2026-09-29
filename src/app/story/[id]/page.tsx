@@ -49,7 +49,6 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
           <p className="sheet-lead">{story.excerpt}</p>
           <p className="stamp sheet-meta">
             <Link href={`/explore/${story.collection}`} className="tag">{col?.label ?? story.emotion}</Link>
-            {story.readingTime}
           </p>
         </header>
 

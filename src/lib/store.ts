@@ -228,7 +228,7 @@ export async function createStory(input: NewStoryInput): Promise<Story> {
       author,
       date,
       time,
-      reading_time: estimateReadingTime(input.body),
+      reading_time: '', // legacy column, no longer shown
       felt: 0,
       body: finalBody,
       search_blob: searchBlob,
@@ -243,12 +243,6 @@ export async function createStory(input: NewStoryInput): Promise<Story> {
     throw error;
   }
   return rowToStory(data as StoryRow);
-}
-
-function estimateReadingTime(text: string): string {
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  const mins = Math.max(1, Math.round(words / 180));
-  return `${mins} min read`;
 }
 
 /** Atomic increment/decrement via a Postgres function, so two people

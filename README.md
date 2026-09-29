@@ -124,10 +124,19 @@ which rejects non-images and strips EXIF/GPS metadata, and stored in the
 public `story-photos` Supabase Storage bucket. Stories without a photo show
 none.
 
-**One-time setup:** run `supabase/add-story-photos.sql` in the Supabase SQL
-editor. It adds the `photo_url` / `photo_caption` columns and creates the
-bucket. The app selects these columns on every query, so run it before
-deploying this code.
+**Database setup:** see "Setting up Supabase" below — `supabase/schema.sql`
+creates the photo columns and the bucket along with everything else.
+
+## Setting up Supabase
+
+1. Create a project at https://supabase.com/dashboard.
+2. In its SQL editor, run `supabase/schema.sql` (tables, indexes, the
+   `increment_felt` / `random_story` functions, RLS, and the photo bucket).
+3. From Project Settings → API, put the project URL and the `service_role`
+   key in `.env.local` as `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+4. Optional: to bring stories over from another project, add its values as
+   `OLD_SUPABASE_URL` / `OLD_SUPABASE_SERVICE_ROLE_KEY` and run
+   `node scripts/copy-stories.mjs` (dry run), then with `--write`.
 
 ## Scripts
 

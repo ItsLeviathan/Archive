@@ -15,7 +15,6 @@ export function StoryCard({ story, showDate = false }: { story: Story; showDate?
       <div className="entry-meta">
         <span className="stamp">{showDate ? `${prettyDate(story.date)} · ${story.time}` : story.time}</span>
         <Link href={`/explore/${story.collection}`} className="tag">{chapter?.label ?? story.emotion}</Link>
-        <span className="stamp entry-read">{story.readingTime}</span>
       </div>
       <h3 className="entry-title">{story.title}</h3>
       <p className="entry-excerpt">{story.excerpt}</p>
