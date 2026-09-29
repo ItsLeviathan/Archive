@@ -42,3 +42,8 @@ const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'
 export function chapterNumeral(index: number): string {
   return ROMAN[index] ?? String(index + 1);
 }
+
+export function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+

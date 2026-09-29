@@ -9,6 +9,7 @@ import { identityStore } from '@/lib/identityStore';
 import { loadDraft, saveDraft, clearDraft } from '@/lib/draftStore';
 import { useToast } from '@/contexts/ToastContext';
 import { PhotoPicker, PickedPhoto } from './PhotoPicker';
+import { countWords } from '@/lib/format';
 
 // Computed in the browser so it reflects the writer's own clock and
 // timezone. Server time (usually UTC) would stamp the entry with the wrong
@@ -60,7 +61,7 @@ function Composer({ initialChapter }: { initialChapter: CollectionId | null }) {
   // Save as they type — a closed tab never costs anyone their words.
   useEffect(() => { saveDraft({ title, body, collection }); }, [title, body, collection]);
 
-  const words = body.trim().split(/\s+/).filter(Boolean).length;
+  const words = countWords(body);
   const missing = [
     body.trim().length < 3 && 'write a few words',
     title.trim().length < 2 && 'add a title',
@@ -150,7 +151,7 @@ function Composer({ initialChapter }: { initialChapter: CollectionId | null }) {
           autoFocus
         />
         <p className="write-status stamp" aria-live="polite">
-          {words} {words === 1 ? 'word' : 'words'} &middot; ~{Math.max(1, Math.round(words / 180))} min read
+          {words} {words === 1 ? 'word' : 'words'}
           {(title || body) && <> &middot; draft saved on this device</>}
         </p>
 
