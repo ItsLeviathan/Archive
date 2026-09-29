@@ -29,6 +29,9 @@ export interface Story {
   readingTime: string;
   felt: number;
   body: string[];
+  /** Writer-uploaded photo (public Supabase Storage URL), or null. */
+  photoUrl?: string | null;
+  photoCaption?: string | null;
 }
 
 export interface NewStoryInput {
@@ -46,4 +49,6 @@ export interface NewStoryInput {
    */
   date?: string;
   time?: string;
+  /** Already processed by lib/photos.ts processPhoto(). */
+  photo?: { data: Buffer; caption?: string };
 }

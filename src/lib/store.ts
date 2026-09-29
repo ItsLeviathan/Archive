@@ -1,5 +1,6 @@
 import { NewStoryInput, Story, CollectionId, CardLayout } from './types';
 import { supabase } from './supabaseClient';
+import { PHOTO_BUCKET } from './photos';
 
 /**
  * Persistent data store, backed by Postgres via Supabase.
@@ -30,10 +31,12 @@ interface StoryRow {
   reading_time: string;
   felt: number;
   body: string[];
+  photo_url: string | null;
+  photo_caption: string | null;
 }
 
 const SELECT_COLUMNS =
-  'id, collection, emotion, layout, title, excerpt, author, date, time, reading_time, felt, body';
+  'id, collection, emotion, layout, title, excerpt, author, date, time, reading_time, felt, body, photo_url, photo_caption';
 
 function rowToStory(row: StoryRow): Story {
   return {
@@ -49,6 +52,8 @@ function rowToStory(row: StoryRow): Story {
     readingTime: row.reading_time,
     felt: row.felt,
     body: row.body,
+    photoUrl: row.photo_url ?? null,
+    photoCaption: row.photo_caption ?? null,
   };
 }
 
@@ -198,6 +203,19 @@ export async function createStory(input: NewStoryInput): Promise<Story> {
     .join(' ')
     .toLowerCase();
 
+  // Upload first so the row is only ever written with a working URL; if
+  // the insert then fails, remove the file so nothing is left orphaned.
+  let photoPath: string | null = null;
+  let photoUrl: string | null = null;
+  if (input.photo) {
+    photoPath = `${id}.webp`;
+    const { error: uploadError } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .upload(photoPath, input.photo.data, { contentType: 'image/webp', upsert: false });
+    if (uploadError) throw uploadError;
+    photoUrl = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(photoPath).data.publicUrl;
+  }
+
   const { data, error } = await supabase
     .from('stories')
     .insert({
@@ -214,11 +232,16 @@ export async function createStory(input: NewStoryInput): Promise<Story> {
       felt: 0,
       body: finalBody,
       search_blob: searchBlob,
+      photo_url: photoUrl,
+      photo_caption: input.photo?.caption?.trim() || null,
     })
     .select(SELECT_COLUMNS)
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (photoPath) await supabase.storage.from(PHOTO_BUCKET).remove([photoPath]);
+    throw error;
+  }
   return rowToStory(data as StoryRow);
 }
 

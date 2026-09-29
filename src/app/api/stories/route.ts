@@ -3,6 +3,7 @@ import { listStories, listStoriesByIds, createStory, searchStories } from '@/lib
 import { COLLECTIONS } from '@/lib/data';
 import { CollectionId, NewStoryInput } from '@/lib/types';
 import { isRateLimited, clientKey } from '@/lib/rateLimit';
+import { processPhoto, PhotoError, MAX_CAPTION_LENGTH } from '@/lib/photos';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,16 +46,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let payload: Partial<NewStoryInput>;
+  // The Write page sends multipart/form-data (so it can carry a photo);
+  // plain JSON is still accepted for photo-less API clients.
+  let payload: Partial<Record<keyof NewStoryInput, unknown>>;
+  let photoFile: File | null = null;
+  let photoCaption = '';
   try {
-    payload = await req.json();
+    if (req.headers.get('content-type')?.includes('multipart/form-data')) {
+      const form = await req.formData();
+      payload = Object.fromEntries(
+        ['title', 'body', 'collection', 'author', 'date', 'time'].map((k) => [k, form.get(k) ?? undefined])
+      );
+      const photo = form.get('photo');
+      if (photo instanceof File && photo.size > 0) photoFile = photo;
+      const caption = form.get('photoCaption');
+      if (typeof caption === 'string') photoCaption = caption.trim();
+    } else {
+      payload = await req.json();
+    }
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
   }
 
   const title = typeof payload.title === 'string' ? payload.title.trim() : '';
   const body = typeof payload.body === 'string' ? payload.body.trim() : '';
-  const collection = payload.collection;
+  const collection = typeof payload.collection === 'string' ? payload.collection : undefined;
   const author = typeof payload.author === 'string' ? payload.author.trim() : undefined;
   // Sent by WriteFlow from the writer's own device clock (see WriteFlow.tsx).
   // Computing this on the server instead would stamp every story with the
@@ -90,6 +106,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Name is too long.' }, { status: 400 });
   }
 
+  if (photoCaption.length > MAX_CAPTION_LENGTH) {
+    return NextResponse.json({ error: 'Photo caption is too long.' }, { status: 400 });
+  }
+  // Text checks come first — no point decoding an image for a request
+  // that would be rejected anyway.
+  let photo: NewStoryInput['photo'];
+  if (photoFile) {
+    try {
+      photo = { data: await processPhoto(await photoFile.arrayBuffer()), caption: photoCaption };
+    } catch (e) {
+      if (e instanceof PhotoError) return NextResponse.json({ error: e.message }, { status: 400 });
+      throw e;
+    }
+  }
+
   const story = await createStory({
     title,
     body,
@@ -97,6 +128,7 @@ export async function POST(req: NextRequest) {
     author,
     date,
     time,
+    photo,
   });
 
   return NextResponse.json({ story }, { status: 201 });

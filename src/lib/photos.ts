@@ -1,153 +1,35 @@
-import { CollectionId } from './types';
+import sharp from 'sharp';
 
 /**
- * Real atmospheric photography for the archive, sourced from the Pexels
- * API (https://www.pexels.com/api/) — found via the "Photography" section
- * of github.com/public-apis/public-apis. Chosen over Unsplash (requires
- * an OAuth application-review process before production use) and
- * over Pixabay (huge volume but a lot of clipart/illustration noise mixed
- * into results) — Pexels gives an instant `apiKey`, a real photo search,
- * and curated, editorial-feeling stock photography that fits this site's
- * "dark editorial magazine" look better than either alternative.
+ * Writer-uploaded story photos.
  *
- * Design brief section 18 ("Photography") calls for imagery like empty
- * bedrooms, rain on windows, handwritten letters, coffee cups, old
- * houses, etc. — so each collection gets its own moody search query
- * instead of one generic keyword.
- *
- * VARIETY: each collection resolves to a pool of ~15 candidate photos
- * (one Pexels search per collection, cached for an hour — 8 collections
- * means at most 8 requests/hour, comfortably under the free-tier rate
- * limit). A photo is then picked *at random* from that pool on every
- * request — since the pages calling this already use
- * `export const dynamic = 'force-dynamic'`, every visit re-runs this
- * server-side, so different people (or the same person reloading) can
- * see a different photo from the same pool each time.
- *
- * Works with ZERO setup: if PEXELS_API_KEY isn't set, or the request
- * fails for any reason (bad key, rate limit, network hiccup), this
- * quietly falls back to a pool of deterministic Lorem Picsum images (no
- * key required) so the UI never shows a broken image or throws.
+ * Every upload is decoded and re-encoded here rather than stored as sent:
+ *  - anything that isn't a real image fails to decode and is rejected,
+ *    whatever its claimed content type;
+ *  - EXIF/GPS metadata is dropped (sharp strips it unless asked to keep
+ *    it) — important on an archive where people write anonymously and a
+ *    phone photo can carry their home's coordinates;
+ *  - output is a bounded-size WebP, so storage and page weight stay sane.
  */
 
-export interface AtmosphericPhoto {
-  url: string;
-  alt: string;
-  credit?: { name: string; url: string };
-}
+export const PHOTO_BUCKET = 'story-photos';
+export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // pre-processing; the client downsizes first
+export const MAX_CAPTION_LENGTH = 140;
+const MAX_EDGE = 1600;
 
-const QUERIES: Record<CollectionId, string> = {
-  unsent: 'handwritten letter dim light',
-  longing: 'empty chair window rain',
-  remembered: 'old photograph film grain',
-  forgiven: 'sunlight through curtains',
-  goodbye: 'airport window rain night',
-  grateful: 'warm kitchen table evening',
-  becoming: 'solitary path fog',
-  home: 'family dinner table warm light',
-};
+export class PhotoError extends Error {}
 
-// Used only when there's no Pexels key (or every call fails) — fixed
-// seeds per collection mean the fallback pool is at least stable across
-// restarts, rather than a different random set of placeholder images
-// every time.
-const FALLBACK_SEEDS: Record<CollectionId, string> = {
-  unsent: 'unsent-archive-unsent',
-  longing: 'unsent-archive-longing',
-  remembered: 'unsent-archive-remembered',
-  forgiven: 'unsent-archive-forgiven',
-  goodbye: 'unsent-archive-goodbye',
-  grateful: 'unsent-archive-grateful',
-  becoming: 'unsent-archive-becoming',
-  home: 'unsent-archive-home',
-};
-
-const POOL_SIZE = 15;
-
-// globalThis-backed cache — see the comment block in lib/store.ts for why:
-// Next.js bundles routes/pages independently, so a plain module-level
-// `const cache = new Map()` would silently get a separate copy per route
-// bundle even within one running process.
-interface PhotoPoolCacheEntry { photos: AtmosphericPhoto[]; expiresAt: number }
-const CACHE_KEY = '__unsentArchivePhotoPoolCache__';
-function getCache(): Map<CollectionId, PhotoPoolCacheEntry> {
-  const g = globalThis as unknown as { [CACHE_KEY]?: Map<CollectionId, PhotoPoolCacheEntry> };
-  if (!g[CACHE_KEY]) g[CACHE_KEY] = new Map();
-  return g[CACHE_KEY]!;
-}
-
-const TTL_MS = 60 * 60 * 1000; // 1 hour — comfortably under Pexels' free-tier rate limit
-const RETRY_TTL_MS = TTL_MS / 4; // shorter TTL on failure, so a transient error self-heals sooner
-
-function fallbackPool(collection: CollectionId): AtmosphericPhoto[] {
-  const seed = FALLBACK_SEEDS[collection];
-  return Array.from({ length: POOL_SIZE }, (_, i) => ({
-    url: `https://picsum.photos/seed/${seed}-${i}/1600/1000`,
-    alt: '',
-  }));
-}
-
-function pickRandom(pool: AtmosphericPhoto[]): AtmosphericPhoto {
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-async function getCollectionPhotoPool(collection: CollectionId): Promise<AtmosphericPhoto[]> {
-  const cache = getCache();
-  const cached = cache.get(collection);
-  if (cached && cached.expiresAt > Date.now()) return cached.photos;
-
-  const apiKey = process.env.PEXELS_API_KEY;
-  if (!apiKey) {
-    const photos = fallbackPool(collection);
-    cache.set(collection, { photos, expiresAt: Date.now() + TTL_MS });
-    return photos;
+export async function processPhoto(input: ArrayBuffer): Promise<Buffer> {
+  if (input.byteLength > MAX_UPLOAD_BYTES) {
+    throw new PhotoError('That photo is too large. Please choose one under 8 MB.');
   }
-
   try {
-    const query = QUERIES[collection];
-    const res = await fetch(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&orientation=landscape&per_page=${POOL_SIZE}`,
-      { headers: { Authorization: apiKey }, next: { revalidate: 3600 } }
-    );
-    if (!res.ok) throw new Error(`Pexels responded ${res.status}`);
-
-    const data = await res.json();
-    const results: AtmosphericPhoto[] = (data?.photos ?? []).map(
-      (p: { src?: { large2x?: string; large?: string; original?: string }; alt?: string; photographer?: string; photographer_url?: string }) => ({
-        url: p.src?.large2x || p.src?.large || p.src?.original || '',
-        alt: p.alt || '',
-        credit: { name: p.photographer || '', url: p.photographer_url || '' },
-      })
-    );
-    if (!results.length) throw new Error('No results for query');
-
-    cache.set(collection, { photos: results, expiresAt: Date.now() + TTL_MS });
-    return results;
+    return await sharp(Buffer.from(input), { limitInputPixels: 50_000_000 })
+      .rotate() // apply EXIF orientation before the metadata is discarded
+      .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
   } catch {
-    // Bad/missing key, rate limit, network hiccup — degrade quietly
-    // rather than breaking the page, and retry sooner next time.
-    const photos = fallbackPool(collection);
-    cache.set(collection, { photos, expiresAt: Date.now() + RETRY_TTL_MS });
-    return photos;
+    throw new PhotoError('That file couldn’t be read as a photo. Try a JPG or PNG.');
   }
-}
-
-/** One photo for a specific story, picked at random (per request) from
- * the pool of candidates matching that story's collection. `storyId` is
- * accepted for API-compatibility with call sites and possible future use
- * (e.g. reintroducing a "stable per story" mode), but isn't used to seed
- * the pick — every request can land on a different photo. */
-export async function getStoryPhoto(storyId: string, collection: CollectionId): Promise<AtmosphericPhoto> {
-  void storyId;
-  const pool = await getCollectionPhotoPool(collection);
-  return pickRandom(pool);
-}
-
-/** A representative photo for a collection as a whole — used on pages
- * like the collection header, where there's no one story to key off.
- * Picked at random (per request) from that collection's pool, same as
- * getStoryPhoto, so the header varies on repeat visits too. */
-export async function getCollectionPhoto(collection: CollectionId): Promise<AtmosphericPhoto> {
-  const pool = await getCollectionPhotoPool(collection);
-  return pickRandom(pool);
 }

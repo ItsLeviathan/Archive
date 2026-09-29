@@ -8,6 +8,7 @@ import { useIsClient } from '@/lib/userPrefsHooks';
 import { identityStore } from '@/lib/identityStore';
 import { loadDraft, saveDraft, clearDraft } from '@/lib/draftStore';
 import { useToast } from '@/contexts/ToastContext';
+import { PhotoPicker, PickedPhoto } from './PhotoPicker';
 
 // Computed in the browser so it reflects the writer's own clock and
 // timezone. Server time (usually UTC) would stamp the entry with the wrong
@@ -49,6 +50,9 @@ function Composer({ initialChapter }: { initialChapter: CollectionId | null }) {
   const [signAs, setSignAs] = useState<'anon' | 'named'>(hasStoredName ? 'named' : 'anon');
   const [name, setName] = useState(hasStoredName ? storedName : '');
 
+  const [photo, setPhoto] = useState<PickedPhoto | null>(null);
+  const [photoCaption, setPhotoCaption] = useState('');
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [{ heading }] = useState(formatLocalNow);
@@ -78,11 +82,18 @@ function Composer({ initialChapter }: { initialChapter: CollectionId | null }) {
     const { date, time } = formatLocalNow();
     const author = signAs === 'named' ? name.trim() : undefined;
     try {
-      const res = await fetch('/api/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, collection, author, date, time }),
-      });
+      const form = new FormData();
+      form.set('title', title);
+      form.set('body', body);
+      form.set('collection', collection);
+      form.set('date', date);
+      form.set('time', time);
+      if (author) form.set('author', author);
+      if (photo) {
+        form.set('photo', photo.blob, 'photo.jpg');
+        form.set('photoCaption', photoCaption.trim());
+      }
+      const res = await fetch('/api/stories', { method: 'POST', body: form });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || 'Something went wrong. Please try again.');
@@ -142,6 +153,13 @@ function Composer({ initialChapter }: { initialChapter: CollectionId | null }) {
           {words} {words === 1 ? 'word' : 'words'} &middot; ~{Math.max(1, Math.round(words / 180))} min read
           {(title || body) && <> &middot; draft saved on this device</>}
         </p>
+
+        <PhotoPicker
+          photo={photo}
+          onPhotoChange={setPhoto}
+          caption={photoCaption}
+          onCaptionChange={setPhotoCaption}
+        />
 
         <fieldset className="write-field">
           <legend>Which chapter does it belong to?</legend>

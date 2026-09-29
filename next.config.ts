@@ -1,10 +1,15 @@
 import type { NextConfig } from "next";
 
+// Writer-uploaded story photos are served from this project's Supabase
+// Storage bucket (see lib/photos.ts and supabase/add-story-photos.sql).
+const supabaseHost = process.env.SUPABASE_URL
+  ? new URL(process.env.SUPABASE_URL).hostname
+  : "*.supabase.co";
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "images.pexels.com" }, // real photos, once PEXELS_API_KEY is set
-      { protocol: "https", hostname: "picsum.photos" },     // zero-setup fallback
+      { protocol: "https", hostname: supabaseHost, pathname: "/storage/v1/object/public/story-photos/**" },
     ],
   },
 };

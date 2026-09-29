@@ -138,3 +138,12 @@ export function IconLink(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function IconCamera(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" {...props}>
+      <path d="M3.5 8.5a2 2 0 0 1 2-2h2.2l1.6-2.2h5.4l1.6 2.2h2.2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-9Z" />
+      <circle cx="12" cy="12.8" r="3.6" />
+    </svg>
+  );
+}

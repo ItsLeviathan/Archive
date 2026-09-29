@@ -2,14 +2,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getStory } from '@/lib/store';
-import { getStoryPhoto } from '@/lib/photos';
 import { collectionById } from '@/lib/data';
 import { diaryDate } from '@/lib/format';
 import { FeltButton } from '@/components/FeltButton';
 import { KeepButton } from '@/components/KeepButton';
 import { ShareButton } from '@/components/ShareButton';
 import { RandomButton } from '@/components/RandomButton';
-import { AtmosphericPhoto } from '@/components/AtmosphericPhoto';
+import { StoryPhoto } from '@/components/StoryPhoto';
 import { IconArrowLeft } from '@/components/icons';
 
 // Stories live in Supabase and change at any moment (new entries, felt
@@ -34,7 +33,6 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
   if (!story) notFound();
 
   const col = collectionById(story.collection);
-  const photo = await getStoryPhoto(story.id, story.collection);
 
   return (
     <article className="container reading">
@@ -55,7 +53,7 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
           </p>
         </header>
 
-        <AtmosphericPhoto photo={photo} />
+        {story.photoUrl && <StoryPhoto url={story.photoUrl} caption={story.photoCaption} />}
 
         <div className="sheet-body">
           {story.body.map((p, i) => <p key={i}>{p}</p>)}

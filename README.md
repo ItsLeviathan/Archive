@@ -116,6 +116,19 @@ mine to make for you:
   or spam detection beyond the basic length validation and rate limit
   already in place.
 
+## Story photos
+
+Writers can optionally attach one photo when publishing. It is resized in
+the browser, then re-encoded server-side with `sharp` (`src/lib/photos.ts`),
+which rejects non-images and strips EXIF/GPS metadata, and stored in the
+public `story-photos` Supabase Storage bucket. Stories without a photo show
+none.
+
+**One-time setup:** run `supabase/add-story-photos.sql` in the Supabase SQL
+editor. It adds the `photo_url` / `photo_caption` columns and creates the
+bucket. The app selects these columns on every query, so run it before
+deploying this code.
+
 ## Scripts
 
 - `npm run dev` — local dev server
